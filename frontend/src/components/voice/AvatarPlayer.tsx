@@ -236,9 +236,7 @@ export function AvatarPlayer({ state, avatarId, onSessionReady, className }: Ava
                 )}
               </motion.div>
 
-              {status === "error" && errorMsg && (
-                <p className="text-center text-xs text-red-400 px-2">{errorMsg}</p>
-              )}
+              {/* Error message hidden for seamless fallback */}
 
               <p className="text-center text-sm text-muted-foreground">
                 {status === "error"
