@@ -33,7 +33,7 @@ Microphone → STT (Whisper) → Moderation → LLM + Tools → TTS (ElevenLabs)
 |-------|-----------|
 | Frontend | Next.js 15+, React, TypeScript, Tailwind CSS, Framer Motion, shadcn/ui |
 | Backend | FastAPI, Python 3.12, AsyncIO |
-| AI | OpenAI Whisper, GPT-4.1, Function Calling, Moderation |
+| AI | Gemini Whisper, gemini-2.5-flash, Function Calling, Moderation |
 | Speech | ElevenLabs TTS |
 | Avatar | HeyGen Streaming Avatar API |
 | Search | Tavily Search API |
