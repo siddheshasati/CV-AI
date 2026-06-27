@@ -210,17 +210,6 @@ npm run lint
 npm run build
 ```
 
-## Production Deployment
-
-### Frontend → Vercel
-
-1. Push repo to GitHub
-2. Import project in [Vercel](https://vercel.com)
-3. Set root directory to `frontend`
-4. Add environment variables:
-   - `NEXT_PUBLIC_API_URL` = your Railway backend URL
-   - `NEXT_PUBLIC_WS_URL` = `wss://your-railway-backend.up.railway.app`
-5. Deploy
 
 
 
