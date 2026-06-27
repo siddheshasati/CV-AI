@@ -24,10 +24,13 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const avatarSessionRef = useRef<string | null>(options.avatarSessionId || null);
+
+  const audioQueue = useRef<string[]>([]);
+  const isPlayingRef = useRef(false);
 
   useEffect(() => {
     avatarSessionRef.current = options.avatarSessionId || null;
@@ -52,8 +55,29 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
       audio.onerror = () => resolve();
       audio.play().catch(() => resolve());
     });
-    setState("idle");
+    // Note: State idle is handled by processAudioQueue now, to prevent flickering
   }, [options.speechRate]);
+
+  const processAudioQueue = useCallback(async () => {
+    if (isPlayingRef.current || audioQueue.current.length === 0) return;
+    isPlayingRef.current = true;
+    setState("speaking");
+    
+    while (audioQueue.current.length > 0) {
+      const base64 = audioQueue.current.shift();
+      if (base64) {
+        await playAudio(base64);
+      }
+    }
+    
+    isPlayingRef.current = false;
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      setState("idle");
+    } else {
+      // If still connected and more things might come
+      setState("idle");
+    }
+  }, [playAudio]);
 
   const connectWebSocket = useCallback((): Promise<WebSocket> => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -85,9 +109,12 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
       const ws = await connectWebSocket();
       let fullResponse = "";
       const audioChunks: string[] = [];
+      
+      audioQueue.current = [];
+      isPlayingRef.current = false;
 
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Request timeout")), 60000);
+        const timeout = setTimeout(() => reject(new Error("Request timeout")), 120000);
 
         ws.onmessage = async (event) => {
           const data = JSON.parse(event.data);
@@ -108,6 +135,12 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
               break;
             case "audio_chunk":
               audioChunks.push(data.data);
+              break;
+            case "audio_sentence":
+              if (data.data) {
+                audioQueue.current.push(data.data);
+                processAudioQueue();
+              }
               break;
             case "blocked":
               fullResponse = data.message;
@@ -134,15 +167,21 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
               setResponse(fullResponse);
               setState("speaking");
 
-              if (audioChunks.length > 0) {
-                const combined = audioChunks.join("");
-                await playAudio(combined);
-              } else if (data.audio) {
-                await playAudio(data.audio);
-              } else {
+              const finish = async () => {
+                if (audioChunks.length > 0) {
+                  const combined = audioChunks.join("");
+                  await playAudio(combined);
+                } else if (data.audio) {
+                  await playAudio(data.audio);
+                } else {
+                  while (isPlayingRef.current || audioQueue.current.length > 0) {
+                    await new Promise(r => setTimeout(r, 100));
+                  }
+                }
                 setState("idle");
-              }
-              resolve();
+                resolve();
+              };
+              finish();
               break;
             case "error":
               if (!fullResponse) {
@@ -168,7 +207,7 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
         );
       });
     },
-    [connectWebSocket, conversationId, options.voiceId, playAudio]
+    [connectWebSocket, conversationId, options.voiceId, playAudio, state]
   );
 
   const startRecording = useCallback(async () => {
@@ -178,9 +217,10 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
 
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      source.connect(analyserRef.current);
+      const newAnalyser = audioContextRef.current.createAnalyser();
+      newAnalyser.fftSize = 256;
+      source.connect(newAnalyser);
+      setAnalyser(newAnalyser);
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -232,7 +272,7 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
       setError("Microphone access denied");
       setState("error");
     }
-  }, [conversationId, options.voiceId, playAudio]);
+  }, [conversationId, options.voiceId, playAudio, sendTextStream]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
@@ -289,7 +329,7 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
     activeTools,
     isRecording,
     error,
-    analyser: analyserRef.current,
+    analyser,
     startRecording,
     stopRecording,
     sendText,

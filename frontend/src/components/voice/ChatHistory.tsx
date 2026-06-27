@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { User, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";

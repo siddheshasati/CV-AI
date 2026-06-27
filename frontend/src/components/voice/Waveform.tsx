@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { AssistantState } from "@/lib/api";
@@ -17,7 +17,8 @@ export function Waveform({ state, analyser, className }: WaveformProps) {
 
   useEffect(() => {
     if (!analyser || state !== "listening") {
-      setHeights(Array(bars).fill(state === "speaking" ? 0.4 : 0.12));
+      const h = Array(bars).fill(state === "speaking" ? 0.4 : 0.12);
+      setTimeout(() => setHeights(h), 0);
       return;
     }
 

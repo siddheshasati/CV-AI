@@ -27,8 +27,7 @@ export function Header({ showHistory, onToggleHistory, className }: HeaderProps)
           <Sparkles className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold tracking-tight md:text-base">Voice AI</h1>
-          <p className="text-[10px] text-muted-foreground md:text-xs">Powered by GPT & ElevenLabs</p>
+          <h1 className="text-sm font-semibold tracking-tight md:text-base">CV AI : Conversational</h1>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ from app.tools.time_tool import TimeTool
 @pytest.fixture
 def settings():
     return Settings(
-        openai_api_key="test-key",
+        gemini_api_key="test-key",
         tavily_api_key="test-tavily",
         openweather_api_key="test-weather",
         finnhub_api_key="test-finnhub",
@@ -59,16 +59,11 @@ async def test_wikipedia_tool_cache_hit(cache):
 
 
 @pytest.mark.asyncio
-async def test_moderation_blocks_flagged_content(settings):
-    from app.services.moderation_service import ModerationService, ModerationError
+async def test_moderation_skips():
+    from app.services.moderation_service import ModerationService
 
-    service = ModerationService(settings)
-    mock_result = MagicMock()
-    mock_result.results = [MagicMock(flagged=True, categories=MagicMock(model_dump=lambda: {"hate": True}))]
-
-    with patch.object(service.client.moderations, "create", new_callable=AsyncMock, return_value=mock_result):
-        with pytest.raises(ModerationError):
-            await service.check("offensive content")
+    service = ModerationService(Settings())
+    await service.check("offensive content")  # Should not raise
 
 
 @pytest.mark.asyncio

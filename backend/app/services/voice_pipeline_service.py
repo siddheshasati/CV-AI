@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import re
 from typing import Any, AsyncIterator
 
 from app.core.exceptions import ModerationError
@@ -132,11 +133,49 @@ class VoicePipelineService:
 
         full_text = ""
         tools_used: list[str] = []
+        
+        tts_tasks = []
+        sentence_buffer = ""
+        
+        def flush_sentence(force=False):
+            nonlocal sentence_buffer
+            if not sentence_buffer.strip():
+                return
+            
+            if force:
+                text_to_tts = sentence_buffer
+                sentence_buffer = ""
+            else:
+                match = re.search(r'([.!?;]+)(?:\s|\n|$)', sentence_buffer)
+                if match:
+                    split_idx = match.end()
+                    text_to_tts = sentence_buffer[:split_idx]
+                    sentence_buffer = sentence_buffer[split_idx:]
+                else:
+                    return
+                    
+            if text_to_tts.strip():
+                task = asyncio.create_task(self.tts.synthesize(text_to_tts.strip(), voice_id))
+                tts_tasks.append(task)
 
         async for event in self.llm.chat_stream(message, history):
             if event["type"] == "text_delta":
-                full_text += event["content"]
+                content = event["content"]
+                full_text += content
+                sentence_buffer += content
                 yield event
+                
+                flush_sentence()
+                
+                while tts_tasks and tts_tasks[0].done():
+                    task = tts_tasks.pop(0)
+                    try:
+                        audio = task.result()
+                        if audio:
+                            yield {"type": "audio_sentence", "data": base64.b64encode(audio).decode("utf-8")}
+                    except Exception as e:
+                        logger.error("tts_streaming_error", error=str(e))
+                        
             elif event["type"] in ("tool_start", "tool_end"):
                 yield event
             elif event["type"] == "done":
@@ -152,8 +191,14 @@ class VoicePipelineService:
         if avatar_session_id and full_text:
             avatar_task = asyncio.create_task(self.avatar.speak(avatar_session_id, full_text))
 
-        async for audio_chunk in self.tts.synthesize_stream(full_text, voice_id):
-            yield {"type": "audio_chunk", "data": base64.b64encode(audio_chunk).decode("utf-8")}
+        flush_sentence(force=True)
+        for task in tts_tasks:
+            try:
+                audio = await task
+                if audio:
+                    yield {"type": "audio_sentence", "data": base64.b64encode(audio).decode("utf-8")}
+            except Exception as e:
+                logger.error("tts_streaming_error", error=str(e))
 
         if avatar_task:
             await avatar_task

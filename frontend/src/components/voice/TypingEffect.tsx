@@ -15,7 +15,7 @@ export function TypingEffect({ text, speed = 20, className, onComplete }: Typing
   const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
-    setDisplayed("");
+    setTimeout(() => setDisplayed(""), 0);
     if (!text) return;
 
     let i = 0;
