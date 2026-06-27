@@ -67,42 +67,7 @@ cp backend/.env.example backend/.env
 cp frontend/.env.local.example frontend/.env.local
 ```
 
-### 2. Run with Docker (recommended)
 
-```bash
-docker compose up --build
-```
-
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/api/v1/docs
-
-### 3. Run locally (development)
-
-**Backend:**
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-mkdir -p data
-uvicorn app.main:app --reload --port 8000
-```
-
-**Redis:**
-
-```bash
-docker run -d -p 6379:6379 redis:7-alpine
-```
-
-**Frontend:**
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
 
 ## Environment Variables
 
@@ -110,8 +75,8 @@ npm run dev
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | OpenAI API key (Whisper, GPT, Moderation) |
-| `OPENAI_MODEL` | No | Default: `gpt-4.1` |
+| `GEMINIAI_API_KEY` | Yes | GeminiAI API key (Whisper, Moderation) |
+| `GEMINI_MODEL` | No | Default: `gemini-2.5-flash` |
 | `ELEVENLABS_API_KEY` | Yes | ElevenLabs TTS |
 | `ELEVENLABS_VOICE_ID` | No | Default voice ID |
 | `HEYGEN_API_KEY` | No | HeyGen avatar (fallback UI if missing) |
