@@ -222,28 +222,7 @@ npm run build
    - `NEXT_PUBLIC_WS_URL` = `wss://your-railway-backend.up.railway.app`
 5. Deploy
 
-### Backend → Railway
 
-1. Create new project on [Railway](https://railway.app)
-2. Connect GitHub repo
-3. Add Redis plugin
-4. Set environment variables from `backend/.env.example`
-5. Set start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-6. Update `CORS_ORIGINS` with your Vercel domain
-
-### Docker Production
-
-```bash
-docker compose -f docker-compose.yml up -d --build
-```
-
-## Design Patterns
-
-- **SOLID principles** — single-responsibility services
-- **Dependency Injection** — `Container` in `dependencies.py`
-- **Repository Pattern** — SQLite data access
-- **Service Layer** — business logic separated from routes
-- **Tool Registry** — extensible function calling
 
 ## License
 
