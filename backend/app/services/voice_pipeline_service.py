@@ -88,9 +88,11 @@ class VoicePipelineService:
             ChatMessage(role=MessageRole.ASSISTANT, content=response_text, metadata={"tools": tools_used}),
         )
 
-        audio_bytes_out = await self.tts.synthesize(response_text, voice_id)
+        audio_bytes_out = None
         if avatar_session_id:
             await self.avatar.speak(avatar_session_id, response_text)
+        else:
+            audio_bytes_out = await self.tts.synthesize(response_text, voice_id)
 
         return {
             "conversation_id": conversation_id,
@@ -155,8 +157,12 @@ class VoicePipelineService:
                     return
                     
             if text_to_tts.strip():
-                task = asyncio.create_task(self.tts.synthesize(text_to_tts.strip(), voice_id))
-                tts_tasks.append(task)
+                if avatar_session_id:
+                    # Stream directly to avatar to reduce latency and prevent double audio
+                    asyncio.create_task(self.avatar.speak(avatar_session_id, text_to_tts.strip()))
+                else:
+                    task = asyncio.create_task(self.tts.synthesize(text_to_tts.strip(), voice_id))
+                    tts_tasks.append(task)
 
         async for event in self.llm.chat_stream(message, history):
             if event["type"] == "text_delta":
@@ -187,10 +193,6 @@ class VoicePipelineService:
             ChatMessage(role=MessageRole.ASSISTANT, content=full_text, metadata={"tools": tools_used}),
         )
 
-        avatar_task = None
-        if avatar_session_id and full_text:
-            avatar_task = asyncio.create_task(self.avatar.speak(avatar_session_id, full_text))
-
         flush_sentence(force=True)
         for task in tts_tasks:
             try:
@@ -199,9 +201,6 @@ class VoicePipelineService:
                     yield {"type": "audio_sentence", "data": base64.b64encode(audio).decode("utf-8")}
             except Exception as e:
                 logger.error("tts_streaming_error", error=str(e))
-
-        if avatar_task:
-            await avatar_task
 
         yield {"type": "done", "tools_used": tools_used, "response": full_text}
 
@@ -216,9 +215,12 @@ class VoicePipelineService:
             conversation_id,
             ChatMessage(role=MessageRole.ASSISTANT, content=message, metadata={"blocked": True}),
         )
-        audio = await self.tts.synthesize(message, voice_id)
+        audio = None
         if avatar_session_id:
             await self.avatar.speak(avatar_session_id, message)
+        else:
+            audio = await self.tts.synthesize(message, voice_id)
+            
         return {
             "conversation_id": conversation_id,
             "response": message,
