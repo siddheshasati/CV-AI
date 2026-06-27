@@ -43,26 +43,6 @@ Microphone → STT (Whisper) → Moderation → LLM + Tools → TTS (ElevenLabs)
 | Cache | Redis |
 | Deploy | Vercel (frontend) + Railway (backend) |
 
-## Project Structure
-
-```
-├── frontend/                 # Next.js app
-│   ├── src/app/              # Pages (voice UI, settings)
-│   ├── src/components/       # UI + voice components
-│   ├── src/hooks/            # useVoiceAssistant hook
-│   └── src/lib/              # API client, utilities
-├── backend/
-│   ├── app/
-│   │   ├── api/              # REST + WebSocket routes
-│   │   ├── core/             # Logging, exceptions
-│   │   ├── models/           # Pydantic schemas
-│   │   ├── repositories/     # SQLite repositories
-│   │   ├── services/         # STT, LLM, TTS, avatar, pipeline
-│   │   └── tools/            # Function calling tools
-│   └── tests/
-├── docker-compose.yml
-└── railway.toml
-```
 
 ## Quick Start
 
