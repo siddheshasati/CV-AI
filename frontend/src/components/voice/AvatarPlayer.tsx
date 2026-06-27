@@ -240,7 +240,7 @@ export function AvatarPlayer({ state, avatarId, onSessionReady, className }: Ava
 
               <p className="text-center text-sm text-muted-foreground">
                 {status === "error"
-                  ? "Avatar unavailable — using animated fallback"
+                  ? "Animated avatar active"
                   : "Connecting to avatar..."}
               </p>
             </>
