@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+backend/.env
+frontend/.env.local
+
+# Build
+frontend/.next/
+frontend/out/
+dist/
+build/
+
+# Data
+backend/data/
+*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker
+.docker/
+
+# Coverage
+htmlcov/
+.coverage
+coverage/
