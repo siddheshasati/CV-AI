@@ -97,6 +97,7 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
               setConversationId(data.conversation_id);
               break;
             case "text_delta":
+              if (state !== "speaking") setState("speaking");
               fullResponse += data.content;
               setResponse(fullResponse);
               break;
@@ -144,10 +145,14 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
               resolve();
               break;
             case "error":
-              clearTimeout(timeout);
-              setError(data.message);
-              setState("error");
-              reject(new Error(data.message));
+              if (!fullResponse) {
+                clearTimeout(timeout);
+                setError(data.message);
+                setState("error");
+                reject(new Error(data.message));
+              } else {
+                console.warn("WebSocket error after response started:", data.message);
+              }
               break;
           }
         };
@@ -206,27 +211,10 @@ export function useVoiceAssistant(options: UseVoiceAssistantOptions = {}) {
             options.voiceId || undefined
           );
 
-          setConversationId(result.conversation_id);
-          setTranscript(result.transcript || "");
-          setResponse(result.response || "");
-
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "user",
-              content: result.transcript || "",
-              timestamp: new Date().toISOString(),
-            },
-            {
-              role: "assistant",
-              content: result.response || "",
-              timestamp: new Date().toISOString(),
-              metadata: { tools: result.tools_used, blocked: result.blocked },
-            },
-          ]);
-
-          if (result.audio_base64) {
-            await playAudio(result.audio_base64);
+          if (result.transcript) {
+            setTranscript(result.transcript);
+            // Stream the response directly to drastically reduce latency
+            await sendTextStream(result.transcript);
           } else {
             setState("idle");
           }

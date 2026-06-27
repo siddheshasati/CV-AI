@@ -44,55 +44,16 @@ class VoicePipelineService:
         avatar_session_id: str | None = None,
         voice_id: str | None = None,
     ) -> dict[str, Any]:
-        if not conversation_id:
-            conv = await self.chat_repo.create_conversation()
-            conversation_id = conv.id
-        else:
-            conv = await self.chat_repo.get_conversation(conversation_id)
-            if not conv:
-                conv = await self.chat_repo.create_conversation()
-                conversation_id = conv.id
-
         transcript = await self.stt.transcribe(audio_bytes)
         if not transcript:
             return {"conversation_id": conversation_id, "error": "Could not transcribe audio."}
 
-        try:
-            await self.moderation.check(transcript)
-        except ModerationError as exc:
-            await self.chat_repo.add_message(
-                conversation_id,
-                ChatMessage(role=MessageRole.USER, content=transcript, metadata={"blocked": True}),
-            )
-            return await self._blocked_response(conversation_id, exc.message, avatar_session_id, voice_id)
-
-        await self.chat_repo.add_message(
-            conversation_id, ChatMessage(role=MessageRole.USER, content=transcript)
-        )
-
-        history = self._history_to_openai(conv.messages)
-        response_text, tools_used = await self.llm.chat(transcript, history)
-
-        await self.chat_repo.add_message(
-            conversation_id,
-            ChatMessage(role=MessageRole.ASSISTANT, content=response_text, metadata={"tools": tools_used}),
-        )
-
-        audio_task = asyncio.create_task(self.tts.synthesize(response_text, voice_id))
-        avatar_task = None
-        if avatar_session_id:
-            avatar_task = asyncio.create_task(self.avatar.speak(avatar_session_id, response_text))
-
-        audio_bytes_out = await audio_task
-        if avatar_task:
-            await avatar_task
-
         return {
             "conversation_id": conversation_id,
             "transcript": transcript,
-            "response": response_text,
-            "audio_base64": base64.b64encode(audio_bytes_out).decode("utf-8") if audio_bytes_out else None,
-            "tools_used": tools_used,
+            "response": "",
+            "audio_base64": None,
+            "tools_used": [],
             "blocked": False,
         }
 

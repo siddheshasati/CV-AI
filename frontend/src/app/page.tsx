@@ -118,7 +118,7 @@ export default function HomePage() {
                   tools={assistant.activeTools}
                 />
 
-                {assistant.response && assistant.state !== "thinking" && (
+                {assistant.response && (
                   <TypingEffect text={assistant.response} speed={12} />
                 )}
 

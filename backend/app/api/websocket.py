@@ -52,7 +52,5 @@ async def voice_websocket(websocket: WebSocket, container: Container = Depends(g
         logger.info("websocket_disconnected")
     except Exception as exc:
         logger.error("websocket_error", error=str(exc))
-        try:
-            await websocket.send_json({"type": "error", "message": str(exc)})
-        except Exception:
-            pass
+        # Do not send fatal error to UI here because it might overwrite a successful text response
+        pass
